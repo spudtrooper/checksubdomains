@@ -16,60 +16,49 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/spudtrooper/goutil/check"
-	"github.com/spudtrooper/goutil/io"
 	"github.com/spudtrooper/goutil/must"
 	"github.com/spudtrooper/goutil/slice"
+
+	_ "embed"
 )
 
 var (
 	host      = flag.String("host", "", "the host to check")
 	sublist3r = flag.String("sublist3r", "", "full path to sublist3r.py")
 	threads   = flag.Int("threads", 20, "number of threads for checking subdomains")
-	cacheDir  = flag.String("cache_dir", ".cache", "directory of the cache")
 	timeout   = flag.Duration("timeout", 3*time.Second, "timeout for contacting hosts")
 	outHTML   = flag.String("out_html", "", "output HTML file")
 	test      = flag.Bool("test", false, "use test subdomains")
+	fromFile  = flag.String("from_file", "", "file containing subdomains to show")
 
 	colorRE = regexp.MustCompile(`\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]`)
 	hostRE  = regexp.MustCompile(`^[a-zA-Z0-9\-_]+(?:\.[a-zA-Z0-9\-_]+)+$`)
+
+	//go:embed files/index.html
+	indexTemplate string
+	//go:embed files/jquery.js
+	jqueryJS string
+	//go:embed files/index.js
+	indexJS string
+	//go:embed files/index.css
+	indexCSS string
 )
 
 func outputHTML(subdomains []string) {
-	t := `
-<html>
-	<head>
-		<title>Subdomains for {{.Host}}</title>
-	</head>
-<body>
-	<table style="width: 100%; height: 100%">
-		<tr>
-			<td style="width: 20%">
-				<div style="height:100%; overflow:auto">
-					<ul style="list-style:none">
-					{{range .Subdomains}}
-						<li>
-							<a href="#" data-href="{{.}}" onclick="document.getElementById('iframe').src='http://{{.}}';">{{.}}</a>
-						</li>
-					{{end}}
-					</ul>
-				</div>
-			</td>
-			<td style="width: 80%">
-				<iframe id="iframe" src="" style="border: 0; width: 100%; height: 100%"></iframe>
-			</td>
-		</tr>
-	</table>
-</body>
-</html>
-	`
+	allJS := jqueryJS + "\n" + indexJS
+	allCSS := indexCSS
 	var data = struct {
+		AllJS      string
+		AllCSS     string
 		Host       string
 		Subdomains []string
 	}{
+		AllJS:      allJS,
+		AllCSS:     allCSS,
 		Host:       *host,
 		Subdomains: subdomains,
 	}
-	b, err := renderTemplate(t, "index", data)
+	b, err := renderTemplate(indexTemplate, "index", data)
 	check.Err(err)
 	must.WriteFile(*outHTML, b)
 	log.Printf("wrote to %s", *outHTML)
@@ -88,9 +77,9 @@ func renderTemplate(t string, name string, data interface{}) ([]byte, error) {
 }
 
 func findSubdomains() (chan string, int) {
-	res := make(chan string)
-	var subdomains []string
+	log.Printf("finding subdomains")
 
+	var subdomains []string
 	if *test {
 		subdomains = []string{
 			"foo.com",
@@ -108,6 +97,7 @@ func findSubdomains() (chan string, int) {
 		}
 	}
 
+	res := make(chan string)
 	go func() {
 		for _, h := range subdomains {
 			res <- h
@@ -130,12 +120,9 @@ func checkSubdomain(host string) bool {
 	return true
 }
 
-func checkHost() {
+func lookupOkSubdomains() []string {
 	check.Check(*host != "", check.CheckMessage("--host required"))
 	check.Check(*sublist3r != "", check.CheckMessage("--sublist3r required"))
-
-	_, err := io.MkdirAll(*cacheDir)
-	check.Err(err)
 
 	subDomains, numSubDomains := findSubdomains()
 	log.Printf("found %d sub domains", numSubDomains)
@@ -144,6 +131,7 @@ func checkHost() {
 		host string
 		ok   bool
 	}
+
 	results := make(chan result, numSubDomains)
 	go func() {
 		var wg sync.WaitGroup
@@ -169,19 +157,33 @@ func checkHost() {
 		close(results)
 	}()
 
-	var okHosts []string
+	var subs []string
 	for res := range results {
 		if res.ok {
-			okHosts = append(okHosts, res.host)
+			subs = append(subs, res.host)
 		}
 	}
-	sort.Strings(okHosts)
-	for i, h := range okHosts {
+
+	return subs
+}
+
+func findOkSubdomains() []string {
+	if *fromFile == "" {
+		return lookupOkSubdomains()
+	}
+	return slice.NonEmptyStrings(must.ReadLines(*fromFile))
+}
+
+func checkHost() {
+	subs := findOkSubdomains()
+	sort.Strings(subs)
+
+	for i, h := range subs {
 		fmt.Printf("%4d) http://%s\n", i, h)
 	}
 
 	if *outHTML != "" {
-		outputHTML(okHosts)
+		outputHTML(subs)
 	}
 }
 

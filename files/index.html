@@ -1,0 +1,40 @@
+<html>
+
+<head>
+  <title>Subdomains for {{.Host}}</title>
+  <style>
+    {{.AllCSS}}
+  </style>
+  <script>
+    {{.AllJS}}
+  </script>
+  <script>
+    $(document).ready(main);
+  </script>
+</head>
+
+<body>
+  <table style="width: 100%; height: 100%">
+    <tr>
+      <td style="width: 20%">
+        <div style="height:100%; overflow:auto">
+          <div style="font-weight: bold" id="current-host"></div>
+          <ul class="menu">
+            {{range .Subdomains}}
+            <li>
+              <a href="#" data-href="{{.}}" class="subdomain">{{.}}</a>
+              (<a href="#" data-href="{{.}}" class="goog">Google</a>)
+              <a href="http://{{.}}" target="_" class="external-link"></a>
+            </li>
+            {{end}}
+          </ul>
+        </div>
+      </td>
+      <td style="width: 80%">
+        <iframe id="iframe" src="" style="border: solid #000 1px; width: 100%; height: 100%"></iframe>
+      </td>
+    </tr>
+  </table>
+</body>
+
+</html>
