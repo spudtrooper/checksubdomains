@@ -1,4 +1,4 @@
-module github.com/spudtrooper/checkhost
+module github.com/spudtrooper/checksubdomains
 
 go 1.17
 

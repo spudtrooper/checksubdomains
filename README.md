@@ -7,7 +7,7 @@ Finds HTTP-reachabe subdomains of a given host using [sublist3r](https://github.
 Install:
 
 ```
-go install github.com/spudtrooper/checksubdomains
+go get -u github.com/spudtrooper/checksubdomains
 ```
 
 Check the subcomains of `foo.com` where the sublist3r main file is `/path/to/sublist3r.py`:
