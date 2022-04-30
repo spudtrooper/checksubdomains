@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -28,6 +30,7 @@ var (
 	threads   = flag.Int("threads", 20, "number of threads for checking subdomains")
 	timeout   = flag.Duration("timeout", 3*time.Second, "timeout for contacting hosts")
 	outHTML   = flag.String("out_html", "", "output HTML file")
+	html      = flag.Bool("html", false, "output to <html>.html; if both this and --out_html are set, --out_html wins")
 	test      = flag.Bool("test", false, "use test subdomains")
 	fromFile  = flag.String("from_file", "", "file containing subdomains to show")
 
@@ -44,7 +47,7 @@ var (
 	indexCSS string
 )
 
-func outputHTML(subdomains []string) {
+func outputHTML(outputFile string, subdomains []string) {
 	allJS := jqueryJS + "\n" + indexJS
 	allCSS := indexCSS
 	var data = struct {
@@ -60,8 +63,10 @@ func outputHTML(subdomains []string) {
 	}
 	b, err := renderTemplate(indexTemplate, "index", data)
 	check.Err(err)
-	must.WriteFile(*outHTML, b)
-	log.Printf("wrote to %s", *outHTML)
+	must.WriteFile(outputFile, b)
+	abs, err := filepath.Abs(outputFile)
+	check.Err(err)
+	log.Printf("wrote to file://%s", abs)
 }
 
 func renderTemplate(t string, name string, data interface{}) ([]byte, error) {
@@ -86,7 +91,12 @@ func findSubdomains() (chan string, int) {
 			"bar.com",
 		}
 	} else {
-		cmd := exec.Command("python", *sublist3r, "-d", *host)
+		sublist3rPY := *sublist3r
+		if sublist3rPY == "" {
+			sublist3rPY = os.Getenv("SUBLIST3R_PY")
+		}
+		check.Check(sublist3rPY != "", check.CheckMessage("set either --sublist3r or the SUBLIST3R_PY env variable"))
+		cmd := exec.Command("python", sublist3rPY, "-d", *host)
 		var stdout bytes.Buffer
 		cmd.Stdout = &stdout
 		check.Err(cmd.Run())
@@ -122,7 +132,6 @@ func checkSubdomain(host string) bool {
 
 func lookupOkSubdomains() []string {
 	check.Check(*host != "", check.CheckMessage("--host required"))
-	check.Check(*sublist3r != "", check.CheckMessage("--sublist3r required"))
 
 	subDomains, numSubDomains := findSubdomains()
 	log.Printf("found %d sub domains", numSubDomains)
@@ -174,6 +183,16 @@ func findOkSubdomains() []string {
 	return slice.NonEmptyStrings(must.ReadLines(*fromFile))
 }
 
+func htmlOutputFile() string {
+	if *outHTML != "" {
+		return *outHTML
+	}
+	if *html {
+		return *host + ".html"
+	}
+	return ""
+}
+
 func checkHost() {
 	subs := findOkSubdomains()
 	sort.Strings(subs)
@@ -182,8 +201,8 @@ func checkHost() {
 		fmt.Printf("%4d) http://%s\n", i, h)
 	}
 
-	if *outHTML != "" {
-		outputHTML(subs)
+	if f := htmlOutputFile(); f != "" {
+		outputHTML(f, subs)
 	}
 }
 
