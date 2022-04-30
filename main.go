@@ -7,8 +7,6 @@ import (
 
 	"github.com/spudtrooper/checksubdomains/checker"
 	"github.com/spudtrooper/goutil/check"
-
-	_ "embed"
 )
 
 var (
