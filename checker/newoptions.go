@@ -1,8 +1,7 @@
+// DO NOT MODIFY: Generated from https://github.com/spudtrooper/genopts
 package checker
 
 import "time"
-
-//go:generate genopts --prefix=New --outfile=newoptions.go "sublist3r:string" "timeout:time.Duration" "threads:int" "subdomainsFile:string" "htmlOutputFile:string"
 
 type NewOption func(*newOptionImpl)
 

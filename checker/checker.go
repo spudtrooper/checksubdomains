@@ -49,6 +49,7 @@ type Checker struct {
 	htmlOutputFile string
 }
 
+//go:generate genopts --function=New "sublist3r:string" "timeout:time.Duration" "threads:int" "subdomainsFile:string" "htmlOutputFile:string"
 func New(host string, optss ...NewOption) *Checker {
 	opts := MakeNewOptions(optss...)
 	return &Checker{
@@ -102,7 +103,8 @@ func (c *Checker) outputHTML(outputFile string, subdomains []string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("wrote to file://%s", abs)
+	f := fmt.Sprintf("file://%s", abs)
+	log.Printf("wrote to %s", f)
 	return nil
 }
 
@@ -192,10 +194,11 @@ func (c *Checker) lookupOkSubdomains() ([]string, error) {
 						host: h,
 						ok:   ok,
 					}
+					uri := fmt.Sprintf("http://%s", h)
 					if ok {
-						log.Printf("%s %s", color.GreenString("OK"), h)
+						log.Printf("%s %s", color.GreenString("OK"), uri)
 					} else {
-						log.Printf("%s %s", color.RedString("NO"), h)
+						log.Printf("%s %s", color.RedString("NO"), uri)
 					}
 				}
 			}()
