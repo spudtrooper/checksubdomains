@@ -121,7 +121,7 @@ func renderTemplate(t string, name string, data interface{}) ([]byte, error) {
 }
 
 func (c *Checker) findSubdomains() (chan string, int, error) {
-	log.Printf("finding subdomains")
+	log.Printf("finding subdomains for %s", "http://"+c.host)
 
 	var subdomains []string
 

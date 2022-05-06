@@ -3,7 +3,7 @@ function main() {
     $('a').removeClass('active');
     $(a).addClass('active');
     let host = $(a).attr('data-href');
-    $('#iframe').attr('src', 'http://' + host);
+    $('#iframe').attr('src', 'https://' + host);
     $('#current-host').text(host);
   };
   $('.subdomain').on('click', el => {
@@ -30,9 +30,9 @@ function main() {
       }
     }
     // https://stackoverflow.com/questions/4104158/jquery-keypress-left-right-navigation
-    if (e.keyCode == 37) { // left
+    if (e.keyCode == 37 || e.keyCode == 38) { // left, up
       showSibling(-1);
-    } else if (e.keyCode == 39) { // right
+    } else if (e.keyCode == 39 || e.keyCode == 40) { // right, down
       showSibling(+1);
     }
   });
