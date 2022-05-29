@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/spudtrooper/checksubdomains/checker"
+	"github.com/spudtrooper/checksubdomains/words"
 	"github.com/spudtrooper/goutil/check"
 )
 
@@ -17,9 +18,27 @@ var (
 	outHTML   = flag.String("out_html", "", "output HTML file")
 	html      = flag.Bool("html", false, "output to <html>.html; if both this and --out_html are set, --out_html wins")
 	fromFile  = flag.String("from_file", "", "file containing subdomains to show")
+	wordsFlag = flag.Bool("words", false, "Brute force check /usr/share/dict/words file")
+	start     = flag.String("start", "", "start for the --words flag")
 )
 
+func checkWords() {
+	check.Check(*host != "", check.CheckMessage("--host required"))
+	c := words.New(
+		*host,
+		words.NewThreads(*threads),
+		words.NewTimeout(*timeout),
+		words.NewStart(*start),
+	)
+	uris, err := c.Check()
+	check.Err(err)
+	for u := range uris {
+		fmt.Println(u)
+	}
+}
+
 func checkHost() {
+	check.Check(*host != "", check.CheckMessage("--host required"))
 	var htmlOutputFile string
 	if *outHTML != "" {
 		htmlOutputFile = *outHTML
@@ -46,5 +65,9 @@ func checkHost() {
 
 func main() {
 	flag.Parse()
+	if *wordsFlag {
+		checkWords()
+		return
+	}
 	checkHost()
 }
