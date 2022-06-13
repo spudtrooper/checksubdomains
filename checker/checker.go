@@ -47,9 +47,16 @@ type Checker struct {
 	threads        int
 	subdomainsFile string
 	htmlOutputFile string
+	verbose        bool
 }
 
-//go:generate genopts --function=New "sublist3r:string" "timeout:time.Duration" "threads:int" "subdomainsFile:string" "htmlOutputFile:string"
+func (c *Checker) log(tmpl string, args ...interface{}) {
+	if c.verbose {
+		log.Printf(tmpl, args...)
+	}
+}
+
+//go:generate genopts --function=New "sublist3r:string" "timeout:time.Duration" "threads:int" "subdomainsFile:string" "htmlOutputFile:string" "verbose"
 func New(host string, optss ...NewOption) *Checker {
 	opts := MakeNewOptions(optss...)
 	return &Checker{
@@ -59,6 +66,7 @@ func New(host string, optss ...NewOption) *Checker {
 		threads:        opts.Threads(),
 		subdomainsFile: opts.SubdomainsFile(),
 		htmlOutputFile: opts.HtmlOutputFile(),
+		verbose:        opts.Verbose(),
 	}
 }
 
@@ -130,6 +138,7 @@ func (c *Checker) findSubdomains() (chan string, int, error) {
 		return nil, 0, errors.Errorf("set either --sublist3r or the SUBLIST3R_PY env variable")
 	}
 	cmd := exec.Command("python", sublist3rPY, "-d", c.host)
+	c.log("command line: %v", cmd)
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = os.Stderr

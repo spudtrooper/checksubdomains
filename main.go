@@ -20,6 +20,7 @@ var (
 	fromFile  = flag.String("from_file", "", "file containing subdomains to show")
 	wordsFlag = flag.Bool("words", false, "Brute force check /usr/share/dict/words file")
 	start     = flag.String("start", "", "start for the --words flag")
+	verbose   = flag.Bool("verbose", false, "verbose logging")
 )
 
 func checkWords() {
@@ -52,6 +53,7 @@ func checkHost() {
 		checker.NewThreads(*threads),
 		checker.NewTimeout(*timeout),
 		checker.NewSubdomainsFile(*fromFile),
+		checker.NewVerbose(*verbose),
 	)
 	subs, err := c.Check()
 	check.Err(err)
